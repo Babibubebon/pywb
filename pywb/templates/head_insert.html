@@ -1,7 +1,7 @@
 <!-- WB Insert -->
 <script>
 {% set urlsplit = cdx.url | urlsplit %}
-  wbinfo = {}
+  wbinfo = {};
   wbinfo.top_url = "{{ top_url }}";
 {% if is_framed == 'true' %}
   // Fast Top-Frame Redirect
@@ -24,10 +24,17 @@
   wbinfo.coll = "{{ coll }}";
   wbinfo.proxy_magic = "{{ env.pywb_proxy_magic }}";
   wbinfo.static_prefix = "{{ static_prefix }}/";
+{% if env.pywb_proxy_magic %}
+  wbinfo.wombat_mode = "{{ wombat_mode }}";
+{% endif %}
 </script>
-
-{% if not wb_url.is_banner_only %}
-<script src='{{ static_prefix }}/wombat.js'> </script>
+{% if env.pywb_proxy_magic %}
+{% set whichWombat = 'wombatProxyMode.js' %}
+{% else %}
+{% set whichWombat = 'wombat.js' %}
+{% endif %}
+{% if not wb_url.is_banner_only or (env.pywb_proxy_magic and wombat_mode != '') %}
+<script src='{{ static_prefix }}/{{ whichWombat }}'> </script>
 <script>
   wbinfo.wombat_ts = "{{ wombat_ts }}";
   wbinfo.wombat_sec = "{{ wombat_sec }}";
