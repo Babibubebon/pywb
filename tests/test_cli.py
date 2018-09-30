@@ -21,7 +21,7 @@ class TestProxyCLIConfig(CollsDirMixin, BaseTestClass):
                'coll': 'test',
                'recording': False,
                'use_wombat': False,
-               'use_preserve_worker': False}
+               'use_auto_fetch_worker': False}
         assert res.extra_config['proxy'] == exp
 
     def test_proxy_cli_rec(self):

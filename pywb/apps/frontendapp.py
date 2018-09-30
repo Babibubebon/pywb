@@ -121,7 +121,7 @@ class FrontEndApp(object):
             self.url_map.add(Rule('/proxy-fetch/<path:url>', endpoint=self.proxy_fetch,
                                   methods=['GET', 'HEAD', 'OPTIONS']))
             # Add the proxy-worker endpoint to enable usage of PreservationWorker in proxy mode
-            self.url_map.add(Rule('/proxy-worker', endpoint=self.proxy_pworker,
+            self.url_map.add(Rule('/proxy-worker', endpoint=self.proxy_auto_fetch_worker,
                                   methods=['GET', 'HEAD', 'OPTIONS']))
 
         self.url_map.add(Rule(coll_prefix + '/<path:url>', endpoint=self.serve_content))
@@ -571,17 +571,17 @@ class FrontEndApp(object):
         """
         return self.proxy_prefix + url
 
-    def proxy_pworker(self, env, *args):
-        """Handler for the proxy-worker endpoint that serves the preservation worker that operates in proxy mode.
+    def proxy_auto_fetch_worker(self, env, *args):
+        """Handler for the proxy-worker endpoint that serves the auto fetch worker that operates in proxy mode.
 
-        Due to normal cross-origin browser restrictions in proxy mode, the initialization of preservation worker cannot
-        happen by passing the worker constructor the proxy-maigic URL for preservation worker. Rather the JS code must
+        Due to normal cross-origin browser restrictions in proxy mode, the initialization of auto fetch worker cannot
+        happen by passing the worker constructor the proxy-maigic URL for auto fetch worker. Rather the JS code must
         request for its contents and then create a blob to instantiate it. This endpoint handler serves the
-        preservation worker to the browser in a CORS friendly way.
+        auto fetch worker to the browser in a CORS friendly way.
 
         :param dict env: The WSGI environment dictionary
         :param args: Not used
-        :return: WbResponse containing the static file for preservation worker that operates in proxy mode
+        :return: WbResponse containing the static file for auto fetch worker that operates in proxy mode
         :rtype: WbResponse
         """
         if 'wsgiprox.proxy_host' not in env:
@@ -592,7 +592,7 @@ class FrontEndApp(object):
             return WbResponse.options_response(env)
 
         env['pywb.static_dir'] = self.static_dir
-        res = self.serve_static(env, filepath='archivingWorkerProxyMode.js')
+        res = self.serve_static(env, filepath='autoFetchWorkerProxyMode.js')
         res.status_headers.add_header('Access-Control-Allow-Origin',
                                       env.get('HTTP_ORIGIN', env.get('HTTP_REFERER', '*')))
         res.status_headers.add_header('Access-Control-Allow-Methods',
@@ -604,9 +604,9 @@ class FrontEndApp(object):
     def proxy_fetch(self, env, url):
         """Proxy mode only endpoint that handles OPTIONS requests and COR fetches for Preservation Worker.
 
-        Due to normal cross-origin browser restrictions in proxy mode, preservation worker cannot access the CSS rules
+        Due to normal cross-origin browser restrictions in proxy mode, auto fetch worker cannot access the CSS rules
         of cross-origin style sheets and must re-fetch them in a manner that is CORS safe. This endpoint facilitates
-        that by fetching the stylesheets for the preservation worker and then responds with its contents
+        that by fetching the stylesheets for the auto fetch worker and then responds with its contents
 
         :param dict env: The WSGI environment dictionary
         :param str url:  The URL of the resource to be fetched

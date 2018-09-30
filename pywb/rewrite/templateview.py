@@ -172,6 +172,15 @@ class JinjaEnv(object):
             """
             return json.dumps(obj)
 
+        @self.template_filter()
+        def tobool(bool_val):
+            """Converts a python boolean to a JS "true" or "false" string
+            :param any obj: A value to be evaluated as a boolean
+            :return: The string "true" or "false" to be inserted into JS
+            """
+
+            return 'true' if bool_val else 'false'
+
 
 # ============================================================================
 class BaseInsertView(object):
@@ -257,23 +266,12 @@ class HeadInsertView(BaseInsertView):
         params['wb_url'] = wb_url
         params['top_url'] = top_url
         params['coll'] = coll
-        params['is_framed'] = 'true' if is_framed else 'false'
-
-        if params.get('config') is not None:
-            # check to see if there is a configuration for proxy mode in order
-            # to determine wombat + preservation worker usage
-            proxy = params.get('config').get('proxy')
-            if proxy is not None and proxy.get('coll') == coll:
-                wombat_mode = '%s%s' % (
-                    'w' if proxy.get('use_wombat', False) else '',
-                    'p' if proxy.get('use_preserve_worker', False) else ''
-                )
-                params['wombat_mode'] = wombat_mode
+        params['is_framed'] = is_framed
 
         def make_head_insert(rule, cdx):
             params['wombat_ts'] = cdx['timestamp'] if include_ts else ''
             params['wombat_sec'] = timestamp_to_sec(cdx['timestamp'])
-            params['is_live'] = 'true' if cdx.get('is_live') else 'false'
+            params['is_live'] = cdx.get('is_live')
 
             if self.banner_view:
                 banner_html = self.banner_view.render_to_string(env, cdx=cdx, **params)

@@ -60,8 +60,8 @@ class BaseCli(object):
                             help='Enable proxy recording into specified collection')
         parser.add_argument('--proxy-with-wombat', action='store_true',
                             help='Enable partial wombat support in proxy mode')
-        parser.add_argument('--proxy-with-preserve-worker', action='store_true',
-                            help='Enable preservation-worker in proxy mode')
+        parser.add_argument('--proxy-with-auto-fetch', action='store_true',
+                            help='Enable auto-load worker in proxy mode')
 
         self.desc = desc
         self.extra_config = {}
@@ -77,7 +77,7 @@ class BaseCli(object):
                 'coll': self.r.proxy,
                 'recording': self.r.proxy_record,
                 'use_wombat': self.r.proxy_with_wombat,
-                'use_preserve_worker': self.r.proxy_with_preserve_worker,
+                'use_auto_fetch_worker': self.r.proxy_with_auto_fetch,
             }
             self.r.live = True
         self.application = self.load()

@@ -211,14 +211,15 @@ class TestProxyNoHeadInsert(BaseTestProxy):
         assert res.headers['Memento-Datetime'] == 'Mon, 27 Jan 2014 17:12:51 GMT'
 
 
-class TestProxyIncludeBothWombatPreservationWorker(BaseTestProxy):
+# ============================================================================
+class TestProxyIncludeBothWombatAutoFetchWorker(BaseTestProxy):
     @classmethod
     def setup_class(cls):
-        super(TestProxyIncludeBothWombatPreservationWorker, cls).setup_class(
-            extra_opts={'use_wombat': True, 'use_preserve_worker': True}
+        super(TestProxyIncludeBothWombatAutoFetchWorker, cls).setup_class(
+            extra_opts={'use_wombat': True, 'use_auto_fetch_worker': True}
         )
 
-    def test_include_both_wombat_preservation_worker(self, scheme):
+    def test_include_both_wombat_auto_fetch_worker(self, scheme):
         res = requests.get('{0}://example.com/'.format(scheme),
                            proxies=self.proxies,
                            verify=self.root_ca_file)
@@ -232,17 +233,19 @@ class TestProxyIncludeBothWombatPreservationWorker(BaseTestProxy):
         # no wombat.js, yes wombatProxyMode.js
         assert 'wombat.js' not in res.text
         assert 'wombatProxyMode.js' in res.text
-        assert 'wbinfo.wombat_mode = "wp";' in res.text
+        assert 'wbinfo.use_wombat = true;' in res.text
+        assert 'wbinfo.use_auto_fetch_worker = true;' in res.text
 
 
-class TestProxyIncludeWombatNotPreservationWorker(BaseTestProxy):
+# ============================================================================
+class TestProxyIncludeWombatNotAutoFetchWorker(BaseTestProxy):
     @classmethod
     def setup_class(cls):
-        super(TestProxyIncludeWombatNotPreservationWorker, cls).setup_class(
-            extra_opts={'use_wombat': True, 'use_preserve_worker': False}
+        super(TestProxyIncludeWombatNotAutoFetchWorker, cls).setup_class(
+            extra_opts={'use_wombat': True, 'use_auto_fetch': False}
         )
 
-    def test_include_wombat_not_preservation_worker(self, scheme):
+    def test_include_wombat_not_auto_fetch_worker(self, scheme):
         res = requests.get('{0}://example.com/'.format(scheme),
                            proxies=self.proxies,
                            verify=self.root_ca_file)
@@ -256,17 +259,19 @@ class TestProxyIncludeWombatNotPreservationWorker(BaseTestProxy):
         # no wombat.js, yes wombatProxyMode.js
         assert 'wombat.js' not in res.text
         assert 'wombatProxyMode.js' in res.text
-        assert 'wbinfo.wombat_mode = "w";' in res.text
+        assert 'wbinfo.use_wombat = true;' in res.text
+        assert 'wbinfo.use_auto_fetch_worker = false;' in res.text
 
 
-class TestProxyIncludePreservationWorkerNotWombat(BaseTestProxy):
+# ============================================================================
+class TestProxyIncludeAutoFetchWorkerNotWombat(BaseTestProxy):
     @classmethod
     def setup_class(cls):
-        super(TestProxyIncludePreservationWorkerNotWombat, cls).setup_class(
-            extra_opts={'use_wombat': False, 'use_preserve_worker': True}
+        super(TestProxyIncludeAutoFetchWorkerNotWombat, cls).setup_class(
+            extra_opts={'use_wombat': False, 'use_auto_fetch': True}
         )
 
-    def test_include_preservation_worker_not_wombat(self, scheme):
+    def test_include_auto_fetch_worker_not_wombat(self, scheme):
         res = requests.get('{0}://example.com/'.format(scheme),
                            proxies=self.proxies,
                            verify=self.root_ca_file)
@@ -277,17 +282,18 @@ class TestProxyIncludePreservationWorkerNotWombat(BaseTestProxy):
         # yes head insert
         assert 'WB Insert' in res.text
 
-        # no wombat.js, yes wombatProxyMode.js
+        # no wombat.js, no wombatProxyMode.js
+        # auto fetch worker requires wombat
         assert 'wombat.js' not in res.text
-        assert 'wombatProxyMode.js' in res.text
-        assert 'wbinfo.wombat_mode = "p";' in res.text
+        assert 'wombatProxyMode.js' not in res.text
 
 
-class TestProxyPreservationWorkerEndPoints(BaseTestProxy):
+# ============================================================================
+class TestProxyAutoFetchWorkerEndPoints(BaseTestProxy):
     @classmethod
     def setup_class(cls):
-        super(TestProxyPreservationWorkerEndPoints, cls).setup_class(
-            extra_opts={'use_wombat': True, 'use_preserve_worker': True}
+        super(TestProxyAutoFetchWorkerEndPoints, cls).setup_class(
+            extra_opts={'use_wombat': True, 'use_auto_fetch': True}
         )
 
     def test_proxy_root_route_options_request(self, scheme):
@@ -343,7 +349,7 @@ class TestProxyPreservationWorkerEndPoints(BaseTestProxy):
         assert res.ok
         assert res.headers.get('Content-Type') == 'application/javascript'
         assert res.headers.get('Access-Control-Allow-Origin') == origin
-        assert 'Preserver.prototype.safeResolve' in res.text
+        assert 'AutoFetcher.prototype.safeResolve' in res.text
 
         res = requests.get('{0}://pywb.proxy/proxy-worker'.format(scheme),
                            proxies=self.proxies, verify=self.root_ca_file)
@@ -351,4 +357,4 @@ class TestProxyPreservationWorkerEndPoints(BaseTestProxy):
         assert res.ok
         assert res.headers.get('Content-Type') == 'application/javascript'
         assert res.headers.get('Access-Control-Allow-Origin') == '*'
-        assert 'Preserver.prototype.safeResolve' in res.text
+        assert 'AutoFetcher.prototype.safeResolve' in res.text

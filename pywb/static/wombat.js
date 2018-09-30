@@ -78,7 +78,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
     var wb_setAttribute = $wbwindow.Element.prototype.setAttribute;
     var wb_getAttribute = $wbwindow.Element.prototype.getAttribute;
     var wb_funToString = Function.prototype.toString;
-    var WBAutoArchivingWorker;
+    var WBAutoFetchWorker;
     var wbSheetMediaQChecker;
     var wbUseAAWorker = $wbwindow.Worker != null && wbinfo.is_live;
 
@@ -1334,16 +1334,16 @@ var _WBWombat = function($wbwindow, wbinfo) {
     }
 
     //============================================
-    function initAutoArchivingWorker() {
+    function initAutoFetchWorker() {
         if (!wbUseAAWorker) {
             return;
         }
 
         var isTop = $wbwindow === $wbwindow.__WB_replay_top;
 
-        function AutoArchivingWorker(prefix, mod) {
-            if (!(this instanceof AutoArchivingWorker)) {
-                return new AutoArchivingWorker(prefix, mod);
+        function AutoFetchWorker(prefix, mod) {
+            if (!(this instanceof AutoFetchWorker)) {
+                return new AutoFetchWorker(prefix, mod);
             }
             this.checkIntervalCB = this.checkIntervalCB.bind(this);
             if (isTop) {
@@ -1351,7 +1351,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
                 // setup URL for the kewl case
                 // Normal replay and preservation mode pworker setup, its all one origin so YAY!
                     var workerURL = wbinfo.static_prefix +
-                        'archivingWorker.js?init='+
+                        'autoFetchWorker.js?init='+
                         encodeURIComponent(JSON.stringify({ 'mod': mod, 'prefix': prefix }));
                     this.worker = new $wbwindow.Worker(workerURL);
             } else {
@@ -1368,11 +1368,11 @@ var _WBWombat = function($wbwindow, wbinfo) {
             }
         }
 
-        AutoArchivingWorker.prototype.checkIntervalCB = function () {
+        AutoFetchWorker.prototype.checkIntervalCB = function () {
             this.extractFromLocalDoc();
         };
 
-        AutoArchivingWorker.prototype.deferredSheetExtraction = function (sheet) {
+        AutoFetchWorker.prototype.deferredSheetExtraction = function (sheet) {
             var rules = sheet.cssRules || sheet.rules;
             // if no rules this a no op
             if (!rules || rules.length === 0) return;
@@ -1396,16 +1396,16 @@ var _WBWombat = function($wbwindow, wbinfo) {
             $wbwindow.Promise.resolve().then(extract);
         };
 
-        AutoArchivingWorker.prototype.terminate = function () {
+        AutoFetchWorker.prototype.terminate = function () {
             // terminate the worker, a no op when not replay top
             this.worker.terminate();
         };
 
-        AutoArchivingWorker.prototype.postMessage = function (msg) {
+        AutoFetchWorker.prototype.postMessage = function (msg) {
             this.worker.postMessage(msg);
         };
 
-        AutoArchivingWorker.prototype.preserveSrcset = function (srcset) {
+        AutoFetchWorker.prototype.preserveSrcset = function (srcset) {
             // send values from rewrite_srcset to the worker
             this.postMessage({
                 'type': 'values',
@@ -1413,12 +1413,12 @@ var _WBWombat = function($wbwindow, wbinfo) {
             });
         };
 
-        AutoArchivingWorker.prototype.preserveMedia = function (media) {
+        AutoFetchWorker.prototype.preserveMedia = function (media) {
             // send CSSMediaRule values to the worker
             this.postMessage({'type': 'values', 'media': media})
         };
 
-        AutoArchivingWorker.prototype.extractFromLocalDoc = function () {
+        AutoFetchWorker.prototype.extractFromLocalDoc = function () {
                 // get the values to be preserved from the  documents stylesheets
                 // and all elements with a srcset
                 var media = [];
@@ -1450,7 +1450,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
                 });
             };
 
-        WBAutoArchivingWorker = new AutoArchivingWorker(wb_abs_prefix, wbinfo.mod);
+        WBAutoFetchWorker = new AutoFetchWorker(wb_abs_prefix, wbinfo.mod);
 
         wbSheetMediaQChecker = function checkStyle() {
             // used only for link[rel='stylesheet'] so we remove our listener
@@ -1458,7 +1458,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
             // check no op condition
             if (this.sheet == null) return;
             // defer extraction to be nice :)
-            WBAutoArchivingWorker.deferredSheetExtraction(this.sheet);
+            WBAutoFetchWorker.deferredSheetExtraction(this.sheet);
         };
     }
 
@@ -1655,7 +1655,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
         }
         if (wbUseAAWorker) {
             // send post split values to preservation worker
-            WBAutoArchivingWorker.preserveSrcset(values);
+            WBAutoFetchWorker.preserveSrcset(values);
         }
         return values.join(", ");
     }
@@ -1762,7 +1762,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
                     if (wbUseAAWorker && elem.sheet != null) {
                         // we have a stylesheet so lets be nice to UI thread
                         // and defer extraction
-                        WBAutoArchivingWorker.deferredSheetExtraction(elem.sheet);
+                        WBAutoFetchWorker.deferredSheetExtraction(elem.sheet);
                     }
                 }
                 break;
@@ -2199,7 +2199,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
             orig_setter.call(this, res);
             if (wbUseAAWorker && this.tagName === 'STYLE' && this.sheet != null) {
                 // got preserve all the things
-                WBAutoArchivingWorker.deferredSheetExtraction(this.sheet);
+                WBAutoFetchWorker.deferredSheetExtraction(this.sheet);
             }
         };
 
@@ -3658,7 +3658,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
         initFontFaceOverride($wbwindow);
 
         // Worker override (experimental)
-        initAutoArchivingWorker();
+        initAutoFetchWorker();
         init_web_worker_override();
         init_service_worker_override();
         initSharedWorkerOverride();
@@ -3814,7 +3814,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
             }
 
             if ($wbwindow.document.readyState === "complete" && wbUseAAWorker) {
-                WBAutoArchivingWorker.extractFromLocalDoc();
+                WBAutoFetchWorker.extractFromLocalDoc();
             }
 
             if ($wbwindow != $wbwindow.__WB_replay_top) {
@@ -3929,7 +3929,7 @@ var _WBWombat = function($wbwindow, wbinfo) {
             if (wbUseAAWorker) {
                 $wbwindow.addEventListener("message", function(event) {
                     if (event.data && event.data.wb_type === 'aaworker') {
-                        WBAutoArchivingWorker.postMessage(event.data.msg);
+                        WBAutoFetchWorker.postMessage(event.data.msg);
                     }
                 }, false);
             }

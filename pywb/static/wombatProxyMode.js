@@ -27,9 +27,7 @@ var _WBWombat = function ($wbwindow, wbinfo) {
     var wb_info = wbinfo;
     wb_info.top_host = wb_info.top_host || "*";
     wbinfo.wombat_opts = wbinfo.wombat_opts || {};
-    var WBAutoArchivingWorker;
-    var wbUseAAWorker = $wbwindow.Worker != null && wbinfo.is_live && wbinfo.wombat_mode.indexOf('p') !== -1;
-    var wbUseWombat = wbinfo.wombat_mode.indexOf('w') !== -1;
+    var WBAutoFetchWorker;
 
     function init_seeded_random(seed) {
         // Adapted from:
@@ -163,12 +161,16 @@ var _WBWombat = function ($wbwindow, wbinfo) {
         }
     }
 
-    function initAutoArchivingWorker() {
+    function initAutoFetchWorker() {
+        if (!$wbwindow.Worker) {
+            return;
+        }
+
         var isTop = $wbwindow.self === $wbwindow.top;
 
-        function AutoArchivingWorker() {
-            if (!(this instanceof AutoArchivingWorker)) {
-                return new AutoArchivingWorker();
+        function AutoFetchWorker() {
+            if (!(this instanceof AutoFetchWorker)) {
+                return new AutoFetchWorker();
             }
             this.checkIntervalCB = this.checkIntervalCB.bind(this);
             if (isTop) {
@@ -215,20 +217,20 @@ var _WBWombat = function ($wbwindow, wbinfo) {
             }
         }
 
-        AutoArchivingWorker.prototype.checkIntervalCB = function () {
+        AutoFetchWorker.prototype.checkIntervalCB = function () {
             this.extractFromLocalDoc();
         };
 
-        AutoArchivingWorker.prototype.terminate = function () {
+        AutoFetchWorker.prototype.terminate = function () {
             // terminate the worker, a no op when not replay top
             this.worker.terminate();
         };
 
-        AutoArchivingWorker.prototype.postMessage = function (msg) {
+        AutoFetchWorker.prototype.postMessage = function (msg) {
             this.worker.postMessage(msg);
         };
 
-        AutoArchivingWorker.prototype.extractMediaRules = function (rules, href) {
+        AutoFetchWorker.prototype.extractMediaRules = function (rules, href) {
             // We are in proxy mode and must include a URL to resolve relative URLs in media rules
             if (!rules) return [];
             var rvlen = rules.length;
@@ -243,7 +245,7 @@ var _WBWombat = function ($wbwindow, wbinfo) {
             return text;
         };
 
-        AutoArchivingWorker.prototype.corsCSSFetch = function (href) {
+        AutoFetchWorker.prototype.corsCSSFetch = function (href) {
             // because this JS in proxy mode operates as it would on the live web
             // the rules of CORS apply and we cannot rely on URLs being rewritten correctly
             // fetch the cross origin css file and then parse it using a style tag to get the rules
@@ -260,13 +262,13 @@ var _WBWombat = function ($wbwindow, wbinfo) {
             });
         };
 
-        AutoArchivingWorker.prototype.shouldSkipSheet = function (sheet) {
+        AutoFetchWorker.prototype.shouldSkipSheet = function (sheet) {
             // we skip extracting rules from sheets if they are from our parsing style or come from pywb
             if (sheet.id === '$wrStyleParser$') return true;
             return !!(sheet.href && sheet.href.indexOf(wb_info.proxy_magic) !== -1);
         };
 
-        AutoArchivingWorker.prototype.extractFromLocalDoc = function () {
+        AutoFetchWorker.prototype.extractFromLocalDoc = function () {
             var i = 0;
             var media = [];
             var deferredMediaURLS = [];
@@ -317,22 +319,22 @@ var _WBWombat = function ($wbwindow, wbinfo) {
             }
         };
 
-        WBAutoArchivingWorker = new AutoArchivingWorker();
+        WBAutoFetchWorker = new AutoFetchWorker();
 
         if (isTop) {
             $wbwindow.addEventListener("message", function (event) {
                 if (event.data && event.data.wb_type === 'aaworker') {
-                    WBAutoArchivingWorker.postMessage(event.data.msg);
+                    WBAutoFetchWorker.postMessage(event.data.msg);
                 }
             }, false);
         }
     }
 
-    if (wbUseAAWorker) {
-        initAutoArchivingWorker();
+    if (wbinfo.use_auto_fetch_worker && wbinfo.is_live) {
+        initAutoFetchWorker();
     }
 
-    if (wbUseWombat) {
+    if (wbinfo.use_wombat) {
         // proxy mode overrides
         // Random
         init_seeded_random(wbinfo.wombat_sec);

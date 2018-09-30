@@ -3,8 +3,8 @@
 var STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
 var IMPORT_REGEX = /(@import\s+[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
 var srcsetSplit = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
-// the preserver instance for this worker
-var preserver = null;
+// the autofetcher instance for this worker
+var autofetcher = null;
 
 function noop() {}
 
@@ -42,14 +42,14 @@ self.onmessage = function (event) {
     var data = event.data;
     switch (data.type) {
         case 'values':
-            preserver.preserveMediaSrcset(data);
+            autofetcher.autofetchMediaSrcset(data);
             break;
     }
 };
 
-function Preserver() {
-    if (!(this instanceof Preserver)) {
-        return new Preserver();
+function AutoFetcher() {
+    if (!(this instanceof AutoFetcher)) {
+        return new AutoFetcher();
     }
     // local cache of URLs fetched, to reduce server load
     this.seen = {};
@@ -65,11 +65,11 @@ function Preserver() {
     this.fetchDone = this.fetchDone.bind(this);
 }
 
-Preserver.prototype.safeFetch = function (url) {
+AutoFetcher.prototype.safeFetch = function (url) {
     // ensure we do not request data urls
     if (url.indexOf('data:') === 0) return;
     // check to see if we have seen this url before in order
-    // to lessen the load against the server content is preserved from
+    // to lessen the load against the server content is autofetchd from
     if (this.seen[url] != null) return;
     this.seen[url] = true;
     if (this.queuing) {
@@ -80,7 +80,7 @@ Preserver.prototype.safeFetch = function (url) {
     this.fetches.push(fetch(url));
 };
 
-Preserver.prototype.safeResolve = function (url, resolver) {
+AutoFetcher.prototype.safeResolve = function (url, resolver) {
     // Guard against the exception thrown by the URL constructor if the URL or resolver is bad
     // if resolver is undefined/null then this function passes url through
     var resolvedURL = url;
@@ -95,7 +95,7 @@ Preserver.prototype.safeResolve = function (url, resolver) {
 };
 
 
-Preserver.prototype.urlExtractor = function (match, n1, n2, n3, offset, string) {
+AutoFetcher.prototype.urlExtractor = function (match, n1, n2, n3, offset, string) {
     // Same function as style_replacer in wombat.rewrite_style, n2 is our URL
     // this.currentResolver is set to the URL which the browser would normally
     // resolve relative urls with (URL of the stylesheet) in an exceptionless manner
@@ -107,7 +107,7 @@ Preserver.prototype.urlExtractor = function (match, n1, n2, n3, offset, string) 
     return n1 + n2 + n3;
 };
 
-Preserver.prototype.fetchDone = function () {
+AutoFetcher.prototype.fetchDone = function () {
     // indicate we no longer need to Q
     this.queuing = false;
     if (this.queue.length > 0) {
@@ -116,7 +116,7 @@ Preserver.prototype.fetchDone = function () {
     }
 };
 
-Preserver.prototype.fetchAll = function () {
+AutoFetcher.prototype.fetchAll = function () {
     // if we are queuing or have no fetches this is a no op
     if (this.queuing) return;
     if (this.fetches.length === 0) return;
@@ -134,7 +134,7 @@ Preserver.prototype.fetchAll = function () {
         .catch(this.fetchDone);
 };
 
-Preserver.prototype.drainQ = function () {
+AutoFetcher.prototype.drainQ = function () {
     // clear our Q in place and fill our fetches array
     while (this.queue.length > 0) {
         this.fetches.push(fetch(this.queue.shift()));
@@ -143,7 +143,7 @@ Preserver.prototype.drainQ = function () {
     this.fetchAll();
 };
 
-Preserver.prototype.extractMedia = function (mediaRules) {
+AutoFetcher.prototype.extractMedia = function (mediaRules) {
     // this is a broken down rewrite_style
     if (mediaRules == null) return;
     for (var i = 0; i < mediaRules.length; i++) {
@@ -157,7 +157,7 @@ Preserver.prototype.extractMedia = function (mediaRules) {
     }
 };
 
-Preserver.prototype.extractSrcset = function (srcsets) {
+AutoFetcher.prototype.extractSrcset = function (srcsets) {
     // preservation worker in proxy mode sends us the value of the srcset attribute of an element
     // and a URL to correctly resolve relative URLS. Thus we must recreate rewrite_srcset logic here
     if (srcsets == null) return;
@@ -181,12 +181,12 @@ Preserver.prototype.extractSrcset = function (srcsets) {
     }
 };
 
-Preserver.prototype.preserveMediaSrcset = function (data) {
-    // we got a message and now we preserve!
+AutoFetcher.prototype.autofetchMediaSrcset = function (data) {
+    // we got a message and now we autofetch!
     // these calls turn into no ops if they have no work
     this.extractMedia(data.media);
     this.extractSrcset(data.srcset);
     this.fetchAll();
 };
 
-preserver = new Preserver();
+autofetcher = new AutoFetcher();
