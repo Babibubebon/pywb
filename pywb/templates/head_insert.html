@@ -25,8 +25,8 @@
   wbinfo.proxy_magic = "{{ env.pywb_proxy_magic }}";
   wbinfo.static_prefix = "{{ static_prefix }}/";
 {% if env.pywb_proxy_magic %}
-  wbinfo.use_wombat = {{ config.proxy.use_wombat | tobool }};
   wbinfo.use_auto_fetch_worker = {{ config.proxy.use_auto_fetch_worker | tobool }};
+  wbinfo.use_wombat = {{ config.proxy.use_wombat | tobool }} || wbinfo.use_auto_fetch_worker;
 {% endif %}
 </script>
 {% if env.pywb_proxy_magic %}

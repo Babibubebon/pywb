@@ -233,7 +233,7 @@ class TestProxyIncludeBothWombatAutoFetchWorker(BaseTestProxy):
         # no wombat.js, yes wombatProxyMode.js
         assert 'wombat.js' not in res.text
         assert 'wombatProxyMode.js' in res.text
-        assert 'wbinfo.use_wombat = true;' in res.text
+        assert 'wbinfo.use_wombat = true' in res.text
         assert 'wbinfo.use_auto_fetch_worker = true;' in res.text
 
 
@@ -259,7 +259,7 @@ class TestProxyIncludeWombatNotAutoFetchWorker(BaseTestProxy):
         # no wombat.js, yes wombatProxyMode.js
         assert 'wombat.js' not in res.text
         assert 'wombatProxyMode.js' in res.text
-        assert 'wbinfo.use_wombat = true;' in res.text
+        assert 'wbinfo.use_wombat = true' in res.text
         assert 'wbinfo.use_auto_fetch_worker = false;' in res.text
 
 
