@@ -20,9 +20,12 @@ class TestProxyCLIConfig(CollsDirMixin, BaseTestClass):
                'ca_name': 'pywb HTTPS Proxy CA',
                'coll': 'test',
                'recording': False,
-               'use_wombat': False,
-               'use_auto_fetch_worker': False}
+               'enable_wombat': False}
         assert res.extra_config['proxy'] == exp
+
+    def test_auto_fetch_cli(self):
+        res = wayback(['--enable-auto-fetch'])
+        assert res.extra_config['enable_auto_fetch'] == True
 
     def test_proxy_cli_rec(self):
         res = wayback(['--proxy', 'test', '--proxy-record'])
